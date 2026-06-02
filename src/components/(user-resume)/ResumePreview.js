@@ -3,19 +3,33 @@
 import ModernTemplate from "@/components/(user-resume)/templates/ModernTemplate";
 import ClassicTemplate from "@/components/(user-resume)/templates/ClassicTemplate";
 import MinimalTemplate from "@/components/(user-resume)/templates/MinimalTemplate";
+import ExecutiveTemplate from "@/components/(user-resume)/templates/ExecutiveTemplate";
+import CreativeTemplate from "@/components/(user-resume)/templates/CreativeTemplate";
 
-export default function ResumePreview({ resumeData, activeTemplate }) {
+export default function ResumePreview({ resumeData, activeTemplate, isSample }) {
   const isEmpty =
+    !isSample &&
     !resumeData.personalInfo.fullName &&
     !resumeData.personalInfo.email &&
     resumeData.experience.length === 0 &&
+    resumeData.skills.technical.length === 0 &&
+    resumeData.skills.soft.length === 0 &&
     resumeData.education.length === 0;
 
   return (
     <div className="p-6 flex flex-col items-center bg-gray-950">
-      <p className="text-xs text-white/30 mb-4 uppercase tracking-widest">
-        Live Preview
-      </p>
+      
+      {/* Live Preview + Sample Badge */}
+      <div className="flex items-center justify-center gap-2 mb-4">
+        <p className="text-xs text-white/30 uppercase tracking-widest">
+          Live Preview
+        </p>
+        {isSample && (
+          <span className="text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full">
+            Sample
+          </span>
+        )}
+      </div>
 
       {isEmpty ? (
         <div className="w-full max-w-[680px] aspect-[1/1.414] bg-gray-950 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center gap-3 text-white/20">
@@ -36,19 +50,15 @@ export default function ResumePreview({ resumeData, activeTemplate }) {
         </div>
       ) : (
         <div
-         id="resume-preview-root"
-         style={{ width: "680px", maxWidth: "100%" }}
-         className="shadow-2xl rounded-lg overflow-hidden"
+          id="resume-preview-root"
+          style={{ width: "680px", maxWidth: "100%" }}
+          className="shadow-2xl rounded-lg overflow-hidden"
         >
-          {activeTemplate === "modern" && (
-            <ModernTemplate data={resumeData} />
-          )}
-          {activeTemplate === "classic" && (
-            <ClassicTemplate data={resumeData} />
-          )}
-          {activeTemplate === "minimal" && (
-            <MinimalTemplate data={resumeData} />
-          )}
+          {activeTemplate === "modern" && <ModernTemplate data={resumeData} />}
+          {activeTemplate === "classic" && <ClassicTemplate data={resumeData} />}
+          {activeTemplate === "minimal" && <MinimalTemplate data={resumeData} />}
+          {activeTemplate === "executive" && <ExecutiveTemplate data={resumeData} />}
+          {activeTemplate === "creative" && <CreativeTemplate data={resumeData} />}
         </div>
       )}
     </div>

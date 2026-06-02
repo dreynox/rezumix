@@ -5,6 +5,7 @@ import Link from "next/link";
 import axios from "axios";
 import { EMAIL_REGEX, PASSWORD_RULES, getPasswordStrength } from "@/lib/validation";
 import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
+import { toast } from "sonner";
 import {
     User,
     Mail,
@@ -18,54 +19,15 @@ import {
     ArrowLeft,
     AlertCircle,
     Check,
-    X
+    X,
+    Eye,
+    EyeOff
 } from "lucide-react";
-
-// --- Components ---
-
-// 1. Spotlight Card
-function SpotlightCard({ children, className = "" }) {
-    const mouseX = useMotionValue(0);
-    const mouseY = useMotionValue(0);
-
-    function handleMouseMove({ currentTarget, clientX, clientY }) {
-        const { left, top } = currentTarget.getBoundingClientRect();
-        mouseX.set(clientX - left);
-        mouseY.set(clientY - top);
-    }
-
-    return (
-        <div
-            className={`relative border border-white/10 bg-neutral-900/50 overflow-hidden group ${className}`}
-            onMouseMove={handleMouseMove}
-        >
-            <motion.div
-                className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100"
-                style={{
-                    background: useMotionTemplate`
-            radial-gradient(
-              650px circle at ${mouseX}px ${mouseY}px,
-              rgba(59, 130, 246, 0.1),
-              transparent 80%
-            )
-          `,
-                }}
-            />
-            <div className="relative h-full z-10">{children}</div>
-        </div>
-    );
-}
-
-// 2. Background Pattern
-const GridBackground = () => (
-    <div className="fixed inset-0 z-0 pointer-events-none bg-[#050505]">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px]" />
-        <div className="absolute top-0 left-0 w-full h-[60vh] bg-blue-600/5 blur-[120px] rounded-full mix-blend-screen" />
-        <div className="absolute bottom-0 right-0 w-full h-[60vh] bg-purple-600/5 blur-[120px] rounded-full mix-blend-screen" />
-    </div>
-);
-
-// --- Main Page Component ---
+import SpotlightCard from "@/components/ui/SpotlightCard";
+import GridBackground from "@/components/ui/GridBackground";
+import GoogleSignInButton, {
+    googleAuthErrorMessage,
+} from "@/components/auth/GoogleSignInButton";
 
 // --- Password Strength Meter Component ---
 
@@ -133,16 +95,28 @@ export default function Register() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    // Track which fields the user has interacted with (show errors only after touch)
     const [touched, setTouched] = useState({ fullName: false, email: false, password: false });
-
-    // Animation state
+    const [showPassword, setShowPassword] = useState(false);
     const [loaded, setLoaded] = useState(false);
+
     useEffect(() => setLoaded(true), []);
+
+    // Surface Google OAuth failures: NextAuth redirects back with
+    // ?error=<code> when a provider sign-in is cancelled or fails.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const errorCode = params.get("error");
+
+        if (errorCode) {
+            const message = googleAuthErrorMessage(errorCode);
+            setError(message);
+            toast.error(message);
+            window.history.replaceState({}, "", window.location.pathname);
+        }
+    }, []);
 
     const router = useRouter();
 
-    // --- Validation logic ---
     const validation = useMemo(() => {
         const fullNameValid = fullName.trim().length >= 3;
         const emailValid = EMAIL_REGEX.test(email);
@@ -184,10 +158,8 @@ export default function Register() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Mark all fields as touched to show any remaining errors
         setTouched({ fullName: true, email: true, password: true });
 
-        // Prevent submission if validation fails
         if (!validation.isFormValid) {
             setError("Please fix the errors above before submitting.");
             return;
@@ -203,10 +175,10 @@ export default function Register() {
             });
 
             if (response.status === 200) {
+                toast.success("Registration successful! Verify your email to continue...");
                 setSuccess("Registration successful! Redirecting...");
                 const registeredEmail = email.trim().toLowerCase();
                 
-                // Store 60s cooldown expiry in localStorage
                 const expiry = Date.now() + 60 * 1000;
                 localStorage.setItem(`otpCooldown_${registeredEmail}`, expiry.toString());
 
@@ -215,19 +187,28 @@ export default function Register() {
                 setPassword("");
                 setTouched({ fullName: false, email: false, password: false });
 
-                // Redirect to verify-otp with email query parameter after 2 seconds
                 setTimeout(() => {
-                    router.push(`/verify-otp?email=${encodeURIComponent(registeredEmail)}`);
+                router.push(`/verify-otp?email=${encodeURIComponent(registeredEmail)}`)
                 }, 2000);
             }
         } catch (err) {
+            let errorMsg = "An error occurred. Please try again.";
+            
             if (err?.response?.data?.errors && err.response.data.errors.length > 0) {
-                setError(err.response.data.errors[0].messages[0]);
+                errorMsg = err.response.data.errors[0].messages[0];
+                if (errorMsg.includes("email")) {
+                    toast.error("Email already exists. Please use a different email.");
+                } else {
+                    toast.error(errorMsg);
+                }
             } else if (err?.response?.data?.message) {
-                setError(err.response.data.message);
+                errorMsg = err.response.data.message;
+                toast.error(errorMsg);
             } else {
-                setError("An error occurred. Please try again.");
+                toast.error(errorMsg);
             }
+            
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -261,7 +242,6 @@ export default function Register() {
                     {/* LEFT SIDE: Marketing Content */}
                     <div className={`transition-all duration-1000 ease-out ${loaded ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}`}>
 
-                        {/* Animated Badge */}
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-medium mb-8">
                             <Sparkles className="w-3 h-3" />
                             <span>Join the AI Revolution</span>
@@ -332,7 +312,6 @@ export default function Register() {
                                                     : "border-white/10 focus:border-blue-500/50 focus:ring-blue-500/50"
                                             }`}
                                         />
-                                        {/* Real-time indicator icon */}
                                         {touched.fullName && (
                                             <div className="absolute right-4 top-3.5">
                                                 {validation.fullName.valid ? (
@@ -343,7 +322,6 @@ export default function Register() {
                                             </div>
                                         )}
                                     </div>
-                                    {/* Inline error message */}
                                     {touched.fullName && validation.fullName.message && (
                                         <p className="text-xs text-red-400 ml-1 flex items-center gap-1.5">
                                             <span className="w-1 h-1 rounded-full bg-red-400 flex-shrink-0" />
@@ -395,12 +373,12 @@ export default function Register() {
                                     <div className="relative group">
                                         <Lock className="absolute left-4 top-3.5 w-5 h-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                                         <input
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             onBlur={() => handleBlur("password")}
                                             placeholder="Create a secure password"
-                                            className={`w-full bg-[#050505] border rounded-xl py-3 pl-12 pr-10 text-white placeholder-slate-600 focus:outline-none focus:ring-1 transition-all ${
+                                            className={`w-full bg-[#050505] border rounded-xl py-3 pl-12 pr-20 text-white placeholder-slate-600 focus:outline-none focus:ring-1 transition-all ${
                                                 touched.password && !validation.password.valid
                                                     ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/50"
                                                     : touched.password && validation.password.valid
@@ -408,6 +386,20 @@ export default function Register() {
                                                     : "border-white/10 focus:border-blue-500/50 focus:ring-blue-500/50"
                                             }`}
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword((v) => !v)}
+                                            className={`absolute top-3.5 text-slate-500 hover:text-blue-400 transition-colors focus:outline-none ${
+                                                touched.password ? "right-12" : "right-4"
+                                            }`}
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="w-5 h-5" />
+                                            ) : (
+                                                <Eye className="w-5 h-5" />
+                                            )}
+                                        </button>
                                         {touched.password && (
                                             <div className="absolute right-4 top-3.5">
                                                 {validation.password.valid ? (
@@ -418,7 +410,6 @@ export default function Register() {
                                             </div>
                                         )}
                                     </div>
-                                    {/* Password Strength Meter */}
                                     <PasswordStrengthMeter password={password} />
                                 </div>
 
@@ -454,6 +445,22 @@ export default function Register() {
                                     )}
                                 </button>
                             </form>
+
+                            {/* Divider */}
+                            <div className="flex items-center gap-4 my-6">
+                                <div className="h-px flex-1 bg-white/10" />
+                                <span className="text-xs text-slate-500 uppercase tracking-wider">
+                                    Or
+                                </span>
+                                <div className="h-px flex-1 bg-white/10" />
+                            </div>
+
+                            {/* Continue with Google */}
+                            <GoogleSignInButton
+                                label="Sign up with Google"
+                                callbackUrl="/dashboard"
+                                onError={setError}
+                            />
 
                             {/* Footer */}
                             <div className="mt-8 text-center pt-6 border-t border-white/5">

@@ -4,6 +4,9 @@ import { UploadCloud, FileText, CheckCircle, AlertCircle, ArrowRight, Zap, Targe
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { marked } from "marked";
+import { toast } from "sonner";
+import KeywordAnalysis from "@/components/dasboard-components/KeywordAnalysis";
+import { ResultSkeleton } from "@/components/ui/result-skeleton";
 
 export default function ResumeAnalyzer() {
     const [file, setFile] = useState(null);
@@ -11,6 +14,7 @@ export default function ResumeAnalyzer() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [result, setResult] = useState("");
+    const [keywordData, setKeywordData] = useState(null);
     const [scrollY, setScrollY] = useState(0);
     const [isVisible, setIsVisible] = useState({ hero: false, upload: false, results: false });
 
@@ -32,7 +36,6 @@ export default function ResumeAnalyzer() {
         setTimeout(() => setIsVisible({ hero: true, upload: true, results: false }), 300);
     }, []);
 
-    // ✅ PDF aur DOCX dono accept karo
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
         if (!selectedFile) return;
@@ -42,20 +45,30 @@ export default function ResumeAnalyzer() {
             setFile(selectedFile);
             setFileName(selectedFile.name);
             setError("");
+            toast.success(`File selected: ${selectedFile.name}`);
         } else {
             setFile(null);
             setFileName("");
-            setError("Please upload a .docx or .pdf file");
+            const errorMsg = "Please upload a .docx or .pdf file";
+            setError(errorMsg);
+            toast.error(errorMsg);
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!file) return setError("Please select a file to upload");
+        if (!file) {
+            const msg = "Please select a file to upload";
+            setError(msg);
+            toast.error(msg);
+            return;
+        }
 
         setLoading(true);
         setResult("");
         setError("");
+        setKeywordData(null);
+        toast.loading("Analyzing your resume...");
 
         try {
             const isPDF = file.name.toLowerCase().endsWith(".pdf");
@@ -68,13 +81,17 @@ export default function ResumeAnalyzer() {
                     text = await extractTextFromPDF(file);
                 } catch (pdfErr) {
                     console.error("PDF extraction failed:", pdfErr);
-                    setError("PDF text extraction failed: " + pdfErr.message);
+                    const errMsg = "PDF text extraction failed: " + pdfErr.message;
+                    setError(errMsg);
+                    toast.error(errMsg);
                     setLoading(false);
                     return;
                 }
 
                 if (!text || text.trim().length === 0) {
-                    setError("Could not extract text from PDF. Make sure it's not a scanned image.");
+                    const errMsg = "Could not extract text from PDF. Make sure it's not a scanned image.";
+                    setError(errMsg);
+                    toast.error(errMsg);
                     setLoading(false);
                     return;
                 }
@@ -98,7 +115,9 @@ export default function ResumeAnalyzer() {
             if (!response.ok) {
                 const errData = await response.json();
                 console.error("API error:", errData);
-                setError("Server error: " + (errData.error || errData.details || "Unknown error"));
+                const errMsg = "Server error: " + (errData.error || errData.details || "Unknown error");
+                setError(errMsg);
+                toast.error(errMsg);
                 setLoading(false);
                 return;
             }
@@ -107,6 +126,7 @@ export default function ResumeAnalyzer() {
             const decoder = new TextDecoder();
 
             setIsVisible((prev) => ({ ...prev, results: true }));
+            toast.success("Analysis in progress...");
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -119,15 +139,23 @@ export default function ResumeAnalyzer() {
                     if (line.startsWith("data: ")) {
                         try {
                             const data = JSON.parse(line.slice(6));
-                            setResult((prev) => prev + data.content);
+                            if (data.content !== undefined) {
+                                setResult((prev) => prev + data.content);
+                            } else if (data.keyword_data !== undefined) {
+                                setKeywordData(data.keyword_data);
+                            }
                         } catch (e) { console.error("Parse error:", e); }
                     }
                 }
             }
+            
+            toast.success("Resume analysis complete!");
 
         } catch (err) {
             console.error("Full error:", err);
-            setError("Failed to analyze resume: " + err.message);
+            const errMsg = "Failed to analyze resume: " + err.message;
+            setError(errMsg);
+            toast.error(errMsg);
         } finally {
             setLoading(false);
         }
@@ -162,14 +190,12 @@ export default function ResumeAnalyzer() {
                                 <form onSubmit={handleSubmit} className="space-y-6">
                                     {!file ? (
                                         <div className="relative group cursor-pointer">
-                                            {/* ✅ PDF aur DOCX dono accept */}
                                             <input type="file" accept=".docx,.pdf" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer" />
                                             <div className="border-2 border-dashed border-gray-700 rounded-2xl h-64 flex flex-col items-center justify-center transition-all group-hover:border-emerald-500 group-hover:bg-emerald-500/5">
                                                 <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4 text-emerald-500 group-hover:scale-110 transition-transform">
                                                     <UploadCloud size={32} />
                                                 </div>
                                                 <h3 className="text-xl font-semibold text-white mb-2">Drop your resume here</h3>
-                                                {/* ✅ Updated text */}
                                                 <p className="text-gray-500">Supports .docx and .pdf files</p>
                                             </div>
                                         </div>
@@ -186,7 +212,7 @@ export default function ResumeAnalyzer() {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <button type="button" onClick={() => { setFile(null); setFileName(""); setResult(""); }} className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white">
+                                            <button type="button" onClick={() => { setFile(null); setFileName(""); setResult(""); setKeywordData(null); }} className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white">
                                                 <X size={24} />
                                             </button>
                                         </div>
@@ -214,9 +240,18 @@ export default function ResumeAnalyzer() {
                     </div>
                 </section>
 
-                {/* Results Section */}
+                {/* Skeleton shown while waiting for stream to start */}
+                {loading && !result && (
+                    <section className="px-4 sm:px-6 lg:px-8 pb-8">
+                        <div className="max-w-5xl mx-auto">
+                            <ResultSkeleton />
+                        </div>
+                    </section>
+                )}
+
+                {/* Main Analysis Results */}
                 {result && (
-                    <section className="px-4 sm:px-6 lg:px-8 pb-16">
+                    <section className="px-4 sm:px-6 lg:px-8 pb-8">
                         <div className="max-w-5xl mx-auto">
                             <div className={`transition-all duration-1000 ease-out ${isVisible.results ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
                                 <div className="relative p-8 bg-[#0A0A0A] border border-emerald-500/20 rounded-3xl shadow-2xl">
@@ -249,6 +284,15 @@ export default function ResumeAnalyzer() {
                                     />
                                 </div>
                             </div>
+                        </div>
+                    </section>
+                )}
+
+                {/* Keyword Analysis Section — renders after stream completes */}
+                {keywordData && (
+                    <section className="px-4 sm:px-6 lg:px-8 pb-16">
+                        <div className="max-w-5xl mx-auto">
+                            <KeywordAnalysis data={keywordData} />
                         </div>
                     </section>
                 )}

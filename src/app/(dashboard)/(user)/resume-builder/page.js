@@ -1,11 +1,12 @@
 "use client";
-
+import sampleResumeData from "@/components/(user-resume)/sampleData";
 import { useState, useCallback, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import ResumeForm from "@/components/(user-resume)/ResumeForm";
 import ResumePreview from "@/components/(user-resume)/ResumePreview";
 import BuilderHeader from "@/components/(user-resume)/BuilderHeader";
+
 
 const defaultResumeData = {
   personalInfo: { fullName: "", email: "", phone: "", location: "", linkedin: "", portfolio: "", summary: "" },
@@ -21,6 +22,7 @@ export default function BuilderPage() {
   const router = useRouter();
 
   const [resumeData, setResumeData] = useState(defaultResumeData);
+  const [isSample, setIsSample] = useState(true);
   const [activeTemplate, setActiveTemplate] = useState("modern");
   const [mobileView, setMobileView] = useState("form");
   const [saving, setSaving] = useState(false);
@@ -28,19 +30,26 @@ export default function BuilderPage() {
   const [suggestions, setSuggestions] = useState(null);
   const [suggesting, setSuggesting] = useState(false);
 
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/");
-    const saved = localStorage.getItem("resumeBuilderData");
-    if (saved) setResumeData(JSON.parse(saved));
-  }, [status, router]);
+ useEffect(() => {
+  const saved = localStorage.getItem("resumeBuilderData");
+  if (saved) {
+    setResumeData(JSON.parse(saved));
+    setIsSample(false);
+  } else {
+    setIsSample(true);
+  }
+}, []);
 
   useEffect(() => {
+  if (!isSample) {
     localStorage.setItem("resumeBuilderData", JSON.stringify(resumeData));
-  }, [resumeData]);
+  }
+}, [resumeData, isSample]);
 
   const updateResumeData = useCallback((section, value) => {
-    setResumeData((prev) => ({ ...prev, [section]: value }));
-  }, []);
+  setResumeData((prev) => ({ ...prev, [section]: value }));
+  setIsSample(false);
+}, []);
 
   const handleSave = async () => {
     if (!session?.user?.email) return;
@@ -66,7 +75,7 @@ export default function BuilderPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* 1. Header with same style as dashboard cards */}
-      <div className="bg-gray-950 border border-white/10 rounded-2xl p-2 backdrop-blur-sm">
+      <div className="bg-gray-950 border border-white/10 rounded-2xl p-2 backdrop-blur-sm overflow-visible">
         <BuilderHeader
           resumeData={resumeData}
           activeTemplate={activeTemplate}
@@ -97,9 +106,13 @@ export default function BuilderPage() {
         </div>
 
         {/* Preview Section */}
-        <div className={`flex-1 bg-gray-950 border border-white/10 rounded-2xl p-4 overflow-hidden ${mobileView === "form" ? "hidden lg:block" : "block"}`}>
+        <div className={`flex-1 bg-gray-950 border border-white/10 rounded-2xl p-4 overflow-hidden ${mobileView === "form" ? "invisible h-0 lg:visible lg:h-auto": "block"}`}>
           <div className="sticky top-4">
-            <ResumePreview resumeData={resumeData} activeTemplate={activeTemplate} />
+            <ResumePreview 
+  resumeData={isSample ? sampleResumeData : resumeData} 
+  activeTemplate={activeTemplate} 
+  isSample={isSample} 
+/>
           </div>
         </div>
 

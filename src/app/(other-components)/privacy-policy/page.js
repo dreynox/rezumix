@@ -61,7 +61,7 @@ export default function PrivacyPolicy() {
 
             <h2 className="text-2xl font-semibold mt-6 mb-2">9. Contact Us</h2>
             <p className="mb-4">
-                If you have questions or concerns about our privacy practices, please email us at <a href="mailto:support@rezumix.com" className="text-blue-500 underline">{`${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`}</a>.
+                If you have questions or concerns about our privacy practices, please email us at <a href={`mailto:${rezumixEmail}`} className="text-blue-500 underline">{rezumixEmail}</a>.
             </p>
         </div>
     );

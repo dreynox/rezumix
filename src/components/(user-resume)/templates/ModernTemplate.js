@@ -22,13 +22,13 @@ export default function ModernTemplate({ data }) {
           {personalInfo.email && <span>✉ {personalInfo.email}</span>}
           {personalInfo.phone && <span>📞 {personalInfo.phone}</span>}
           {personalInfo.location && <span>📍 {personalInfo.location}</span>}
-          {personalInfo.linkedin && <span>🔗 {personalInfo.linkedin}</span>}
-          {personalInfo.portfolio && <span>💻 {personalInfo.portfolio}</span>}
+          {personalInfo.linkedin && <a href={personalInfo.linkedin} target="_blank" rel="noreferrer" style={{ color: "#c7d2fe", textDecoration: "underline" }}>🔗 {personalInfo.linkedin}</a>}
+          {personalInfo.portfolio && <a href={personalInfo.portfolio} target="_blank" rel="noreferrer" style={{ color: "#c7d2fe", textDecoration: "underline" }}>💻 {personalInfo.portfolio}</a>}
         </div>
       </div>
 
       {/* Body */}
-      <div style={{ padding: "24px 32px", display: "flex", flexDirection: "column", gap: "20px" }}>
+      <div style={{ padding: "24px 32px", display: "flex", flexDirection: "column", gap: "12px" }}>
 
         {/* Summary */}
         {personalInfo.summary && (
@@ -47,7 +47,7 @@ export default function ModernTemplate({ data }) {
               Experience
             </h2>
             {experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: "16px" }}>
+              <div key={i} style={{ marginBottom: "5px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <div>
                     <p style={{ fontWeight: "bold", color: "#111827" }}>{exp.role}</p>
@@ -74,7 +74,7 @@ export default function ModernTemplate({ data }) {
               Education
             </h2>
             {education.map((edu, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
                 <div>
                   <p style={{ fontWeight: "bold", color: "#111827" }}>{edu.degree} {edu.field && `in ${edu.field}`}</p>
                   <p style={{ color: "#4338ca", fontSize: "12px" }}>{edu.institution}</p>
@@ -114,7 +114,7 @@ export default function ModernTemplate({ data }) {
               Projects
             </h2>
            {projects.map((p, i) => (
-           <div key={i} style={{ marginBottom: "12px" }}>
+           <div key={i} style={{ marginBottom: "3px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
              <p style={{ fontWeight: "bold", color: "#111827" }}>{p.title}</p>
              {p.link && (
@@ -142,7 +142,7 @@ export default function ModernTemplate({ data }) {
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <div>
                 <span style={{ fontWeight: "600", color: "#111827" }}>{c.name}</span>
-                 {c.issuer && <span style={{ color: "#6b7280", fontSize: "12px", marginLeft: "8px" }}>— {c.issuer}</span>}
+                 {c.issuer && <span style={{ color: "#6b7280", fontSize: "12px", marginLeft: "8px", wordBreak: "break-word", overflowWrap: "break-word"}}>— {c.issuer}</span>}
               </div>
                 {c.date && <span style={{ color: "#9ca3af", fontSize: "12px" }}>{fmt(c.date)}</span>}
             </div>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +18,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
+import { InterviewCardSkeleton } from "@/components/ui/interview-card-skeleton";
+import { FetchErrorBanner } from "@/components/ui/fetch-error-banner";
 
 // 1. Grid Background
 const GridBackground = () => (
@@ -67,6 +69,7 @@ const MyInterview = () => {
 
     const [interviewDetails, setInterviewDetails] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [fetchError, setFetchError] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
 
     const filteredInterviews = useMemo(() => {
@@ -83,36 +86,52 @@ const MyInterview = () => {
         }
     }, [status, router]);
 
-    useEffect(() => {
-        const fetchInterview = async () => {
-            try {
-                const userEmail = session?.user?.email;
-                if (!userEmail) return;
-                setIsLoading(true);
-                const response = await apiClient.getMockInterviewDetails(userEmail);
-                if (response.data?.data) {
-                    setInterviewDetails(response.data.data);
-                } else if (response.data && Array.isArray(response.data)) {
-                    setInterviewDetails(response.data);
-                } else {
-                    setInterviewDetails([]);
-                }
-            } catch (error) {
-                console.error("Failed to fetch interviews:", error);
-            } finally {
-                setIsLoading(false);
+    const fetchInterview = useCallback(async () => {
+        const userEmail = session?.user?.email;
+        if (!userEmail) {
+            setIsLoading(false);
+            return;
+        }
+        setIsLoading(true);
+        setFetchError("");
+        try {
+            const response = await apiClient.getMockInterviewDetails(userEmail);
+            if (response.data?.data) {
+                setInterviewDetails(response.data.data);
+            } else if (response.data && Array.isArray(response.data)) {
+                setInterviewDetails(response.data);
+            } else {
+                setInterviewDetails([]);
             }
-        };
+        } catch (error) {
+            console.error("Failed to fetch interviews:", error);
+            setFetchError(error.message || "Failed to load interviews. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [session]);
 
+    useEffect(() => {
         if (status === "authenticated" && session?.user?.email) {
             fetchInterview();
         }
-    }, [session, status]);
+    }, [status, session, fetchInterview]);
 
     if (status === "loading" || isLoading) {
         return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-                <div className="text-slate-500">Loading interviews...</div>
+            <div className="relative min-h-screen bg-[#050505] text-slate-200 font-sans overflow-x-hidden">
+                <GridBackground />
+                <div className="relative z-10 max-w-7xl mx-auto px-6 py-12">
+                    <div className="mb-12">
+                        <div className="h-10 w-64 bg-white/5 animate-pulse rounded-xl mb-6" />
+                        <div className="h-12 w-full max-w-xl bg-white/5 animate-pulse rounded-xl" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <InterviewCardSkeleton />
+                        <InterviewCardSkeleton />
+                        <InterviewCardSkeleton />
+                    </div>
+                </div>
             </div>
         );
     }
@@ -142,8 +161,17 @@ const MyInterview = () => {
                     </div>
                 </div>
 
+                {/* Error State */}
+                {fetchError && (
+                    <FetchErrorBanner
+                        message={fetchError}
+                        onRetry={fetchInterview}
+                        className="mb-8 max-w-md mx-auto"
+                    />
+                )}
+
                 {/* Content Grid */}
-                {filteredInterviews.length === 0 ? (
+                {!fetchError && filteredInterviews.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 rounded-3xl bg-white/[0.02]">
                         <BookOpen className="w-16 h-16 text-slate-700 mb-4" />
                         <h3 className="text-xl font-bold text-white mb-2">No Interviews Found</h3>
@@ -154,7 +182,7 @@ const MyInterview = () => {
                             </Button>
                         </Link>
                     </div>
-                ) : (
+                ) : !fetchError && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredInterviews.map((details, index) => (
                             <SpotlightCard key={details._id || index} className="rounded-2xl p-6 flex flex-col h-full hover:-translate-y-1 transition-transform duration-300">

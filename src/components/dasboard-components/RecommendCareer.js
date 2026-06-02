@@ -11,7 +11,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
-    
     ArrowRight,
     Loader2,
     Sparkles,
@@ -19,6 +18,7 @@ import {
     UserCircle,
     Lightbulb
 } from "lucide-react";
+import { FetchErrorBanner } from "@/components/ui/fetch-error-banner";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { marked } from "marked";
@@ -44,6 +44,7 @@ export default function RecommendCareer() {
     });
     const [aiRecommendation, setAiRecommendation] = useState("");
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
     // Auto-scroll to results
     const resultsRef = useRef(null);
@@ -65,10 +66,10 @@ export default function RecommendCareer() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const runRecommendation = async () => {
         setLoading(true);
-        setAiRecommendation(""); // Reset previous results immediately
+        setAiRecommendation("");
+        setError("");
 
         try {
             const skillsArray = formData.skills.split(",").map((skill) => skill.trim());
@@ -107,9 +108,15 @@ export default function RecommendCareer() {
             }
         } catch (error) {
             console.error("Error:", error);
+            setError(error.message || "Failed to generate career recommendation. Please try again.");
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        runRecommendation();
     };
 
     const renderMarkdown = (markdown) => {
@@ -244,7 +251,15 @@ export default function RecommendCareer() {
                     {/* RIGHT SIDE: Results Area */}
                     <div className="lg:col-span-2 space-y-6">
 
-                        {!aiRecommendation && !loading && (
+                        {error && (
+                            <FetchErrorBanner
+                                message={error}
+                                onRetry={runRecommendation}
+                                className="min-h-[200px] justify-center"
+                            />
+                        )}
+
+                        {!aiRecommendation && !loading && !error && (
                             <div className="h-full min-h-[400px] flex flex-col items-center justify-center bg-[#0A0A0A] border-2 border-dashed border-white/10 rounded-3xl p-8 text-center">
                                 <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mb-6">
                                     <Lightbulb className="w-10 h-10 text-amber-500" />

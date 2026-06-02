@@ -22,8 +22,8 @@ export default function MinimalTemplate({ data }) {
         {personalInfo.email && <span>{personalInfo.email}</span>}
         {personalInfo.phone && <span>{personalInfo.phone}</span>}
         {personalInfo.location && <span>{personalInfo.location}</span>}
-        {personalInfo.linkedin && <span>{personalInfo.linkedin}</span>}
-        {personalInfo.portfolio && <span>{personalInfo.portfolio}</span>}
+        {personalInfo.linkedin && <a href={personalInfo.linkedin} target="_blank" rel="noreferrer" className="text-blue-500 underline break-words">{personalInfo.linkedin}</a>}
+        {personalInfo.portfolio && <a href={personalInfo.portfolio} target="_blank" rel="noreferrer" className="text-blue-500 underline break-words">{personalInfo.portfolio}</a>}
       </div>
 
       {/* Summary */}

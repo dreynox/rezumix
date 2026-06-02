@@ -1,21 +1,20 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/db/connectDB";
 import Resume from "@/models/resume.model";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireSession } from "@/lib/auth-guard";
 
 export async function POST(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireSession();
+    if (auth.error) return auth.error;
+    const { session } = auth;
 
     // Connect to MongoDB
     await connectDB();
 
     // Get data from frontend
     const body = await req.json();
+    body.userEmail = session.user.email; // Force email from session for security
 
     if (!body || typeof body !== "object" || Array.isArray(body)) {
       return NextResponse.json({ success: false, message: "Invalid request body" }, { status: 400 });

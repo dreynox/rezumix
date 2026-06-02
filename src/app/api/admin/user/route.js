@@ -1,10 +1,13 @@
 import { connectDB } from "@/db/connectDB"
 import userModel from "@/models/userModel";
 import { NextResponse } from "next/server";
-
+import { requireAdmin } from "@/lib/auth-guard";
 
 export async function GET() {
     try {
+        const auth = await requireAdmin();
+        if (auth.error) return auth.error;
+
         await connectDB()
         const user = await userModel.find({})
 
@@ -21,6 +24,9 @@ export async function GET() {
 
 export async function DELETE(request) {
     try {
+        const auth = await requireAdmin();
+        if (auth.error) return auth.error;
+
         const { searchParams } = new URL(request.url)
         const email = searchParams.get("email")
 

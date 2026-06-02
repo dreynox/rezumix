@@ -27,8 +27,8 @@ export default function ClassicTemplate({ data }) {
         </div>
         {(personalInfo.linkedin || personalInfo.portfolio) && (
           <div style={{ display: "flex", justifyContent: "center", gap: "16px", fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
-            {personalInfo.linkedin && <span style={breakWord}>{personalInfo.linkedin}</span>}
-            {personalInfo.portfolio && <span style={breakWord}>{personalInfo.portfolio}</span>}
+            {personalInfo.linkedin && <a href={personalInfo.linkedin} target="_blank" rel="noreferrer" style={{ color: "#4338ca", textDecoration: "underline", ...breakWord }}>{personalInfo.linkedin}</a>}
+            {personalInfo.portfolio && <a href={personalInfo.portfolio} target="_blank" rel="noreferrer" style={{ color: "#4338ca", textDecoration: "underline", ...breakWord }}>{personalInfo.portfolio}</a>}
           </div>
         )}
       </div>

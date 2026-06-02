@@ -1,11 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, CheckCircle2, ArrowLeft, Brain, Star, Clock, Target, Sparkles, User, ArrowRight } from "lucide-react";
+import { ChevronRight, CheckCircle2, ArrowLeft, Brain, Star, Clock, Target, Sparkles, User, ArrowRight, Download, Loader2 } from "lucide-react";
+import { exportPersonalityPDF } from "@/lib/exportPersonalityPDF";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { marked } from "marked";
 import { Button } from "../ui/button";
+import { FetchErrorBanner } from "@/components/ui/fetch-error-banner";
 
 const questions = [
     { id: 1, text: "Do you prefer structured routines?" },
@@ -55,6 +57,8 @@ export default function PersonalityPrediction() {
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [submitted, setSubmitted] = useState(false);
     const [personalityResult, setPersonalityResult] = useState('');
+    const [fetchError, setFetchError] = useState("");
+    const [isExporting, setIsExporting] = useState(false);
     const [name, setName] = useState("");
     const [quizStarted, setQuizStarted] = useState(false);
 
@@ -75,6 +79,8 @@ export default function PersonalityPrediction() {
                 body: JSON.stringify({ answers, name })
             });
 
+            if (!response.ok) throw new Error(`Request failed: ${response.statusText}`);
+
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
 
@@ -93,7 +99,7 @@ export default function PersonalityPrediction() {
             }
         } catch (error) {
             console.error("Error fetching AI analysis:", error);
-            setPersonalityResult("Failed to analyze personality.");
+            setFetchError(error.message || "Failed to analyze personality. Please try again.");
         }
     };
 
@@ -108,8 +114,22 @@ export default function PersonalityPrediction() {
         setCurrentQuestion(0);
         setAnswers({});
         setPersonalityResult('');
+        setFetchError("");
         setQuizStarted(false);
         setName("");
+    };
+
+    // Generates and downloads the personality report as a PDF
+    const handleDownloadPDF = async () => {
+        setIsExporting(true);
+        try {
+            await exportPersonalityPDF(personalityResult, name);
+        } catch (error) {
+            console.error("PDF export failed:", error);
+            alert("Failed to generate PDF. Please try again.");
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const renderMarkdown = (markdown) => {
@@ -238,7 +258,17 @@ export default function PersonalityPrediction() {
                                 </div>
                             </div>
 
-                            {personalityResult ? (
+                            {fetchError ? (
+                                <FetchErrorBanner
+                                    message={fetchError}
+                                    onRetry={() => {
+                                        setFetchError("");
+                                        setPersonalityResult("");
+                                        submitAnswers();
+                                    }}
+                                    className="my-8"
+                                />
+                            ) : personalityResult ? (
                                 <div 
                                     className="
                                         text-slate-300 leading-relaxed space-y-6
@@ -263,13 +293,25 @@ export default function PersonalityPrediction() {
                                 </div>
                             )}
 
+
                             {personalityResult && (
-                                <div className="mt-12 pt-8 border-t border-white/10">
+                                <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                                     <button
                                         onClick={retakeQuiz}
-                                        className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-medium transition-all flex items-center gap-2 cursor-pointer"
+                                        className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 cursor-pointer"
                                     >
                                         <ArrowLeft className="w-4 h-4" /> Retake Assessment
+                                    </button>
+                                    <button
+                                        onClick={handleDownloadPDF}
+                                        disabled={isExporting}
+                                        className="px-8 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed border border-purple-500/30 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                    >
+                                        {isExporting ? (
+                                            <><Loader2 className="w-4 h-4 animate-spin" /> Generating PDF...</>
+                                        ) : (
+                                            <><Download className="w-4 h-4" /> Download PDF Report</>
+                                        )}
                                     </button>
                                 </div>
                             )}
