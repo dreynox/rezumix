@@ -201,8 +201,7 @@ const Profile = () => {
 
         setLoading(true);
         try {
-            const email = session.user?.email;
-            await apiClient.updateProfile(email, passwordChange);
+            await apiClient.updateProfile(passwordChange);
             
             toast.success('Password Changed Successfully', {
                 position: "top-right",

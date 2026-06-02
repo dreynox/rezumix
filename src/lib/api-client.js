@@ -41,9 +41,10 @@ class ApiClient {
         }
     }
 
-    async updateProfile(email, passwordChange) {
+    async updateProfile(passwordChange) {
         try {
-            const response = await this.api.post(`/user/change-password?email=${encodeURIComponent(email)}`, { passwordChange })
+            const response = await this.api.post("/user/change-password", { passwordChange })
+            return response.data
         } catch (error) {
             this.handleError(error)
         }

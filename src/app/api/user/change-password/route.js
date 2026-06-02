@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 import userModel from "@/models/userModel";
 import { connectDB } from "@/db/connectDB";
 import { isPlainString, validatePassword } from "@/lib/validation";
@@ -20,11 +21,11 @@ export async function POST(req) {
 
         const { currentPassword, newPassword, confirmPassword } = body.passwordChange;
 
-        // ── 2. Type-checking & NoSQL injection prevention ──
-        const { searchParams } = new URL(req.url);
-        const userEmail = searchParams.get('email');
+        // ── 2. Authenticate the caller from the existing NextAuth session ──
+        const token = await getToken({ req, secret: process.env.JWT_SECRET });
+        const userId = token?.id;
 
-        if (!isPlainString(userEmail) || !isPlainString(currentPassword) || !isPlainString(newPassword) || !isPlainString(confirmPassword)) {
+        if (!isPlainString(currentPassword) || !isPlainString(newPassword) || !isPlainString(confirmPassword)) {
             return NextResponse.json({ 
                 success: false, 
                 message: "Invalid input types",
@@ -32,7 +33,13 @@ export async function POST(req) {
             }, { status: 400 });
         }
 
-        const sanitizedEmail = userEmail.trim().toLowerCase();
+        if (!isPlainString(userId)) {
+            return NextResponse.json({ 
+                success: false, 
+                message: "Unauthorized",
+                errors: [{ field: "general", messages: ["You must be logged in to change your password"] }]
+            }, { status: 401 });
+        }
 
         // ── 3. Validate passwords match on backend ──
         if (newPassword !== confirmPassword) {
@@ -54,7 +61,7 @@ export async function POST(req) {
         }
 
         // ── 5. Fetch user and verify current password (CRITICAL SECURITY FIX) ──
-        const user = await userModel.findOne({ email: sanitizedEmail });
+        const user = await userModel.findById(userId);
         if (!user) {
             return NextResponse.json({ 
                 success: false, 

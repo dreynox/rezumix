@@ -220,9 +220,16 @@ Format:
 
 ---
 
+## Code of Conduct
+
+Please note that this project is released with a [Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
+
+---
+
 ## 🤝 Contributing Guide
 
-Contributions make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions make the open-source community an amazing place to learn, inspire and create. Any contributions you make are **greatly appreciated**. 
+- View: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
