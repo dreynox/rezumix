@@ -31,9 +31,7 @@ const UserResume = () => {
         const fetchResumes = async () => {
             try {
                 setIsLoading(prev => ({ ...prev, resumes: true }))
-                const email = session?.user?.email;
-                if (!email) return;
-                const response = await axios.get(`/api/analyze-resume/get-resumes?userEmail=${email}`);
+                const response = await axios.get('/api/analyze-resume/get-resumes');
                 setResumes(response.data.userResumes);
             } catch (error) {
                 console.error("Failed to fetch resumes:", error.message);

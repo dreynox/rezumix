@@ -58,7 +58,6 @@ export default function ResumeAnalyzer() {
         setError("");
 
         try {
-            const userEmail = session?.user?.email;
             const isPDF = file.name.toLowerCase().endsWith(".pdf");
             let response;
 
@@ -80,7 +79,7 @@ export default function ResumeAnalyzer() {
                     return;
                 }
 
-                response = await fetch(`/api/analyze-resume?email=${encodeURIComponent(userEmail)}&fileType=pdf`, {
+                response = await fetch(`/api/analyze-resume?fileType=pdf`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ text })
@@ -90,7 +89,7 @@ export default function ResumeAnalyzer() {
                 const formData = new FormData();
                 formData.append("file", file);
 
-                response = await fetch(`/api/analyze-resume?email=${encodeURIComponent(userEmail)}&fileType=docx`, {
+                response = await fetch(`/api/analyze-resume?fileType=docx`, {
                     method: "POST",
                     body: formData
                 });

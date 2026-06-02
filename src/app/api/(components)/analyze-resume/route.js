@@ -118,6 +118,7 @@ export async function POST(request) {
 
             await resumeModel.create({
                 resumeUrl: "pdf-upload",
+                resumeText: text,
                 userEmail: session.user.email
             });
 
@@ -185,6 +186,11 @@ export async function POST(request) {
 
 export async function DELETE(req) {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const { searchParams } = new URL(req.url);
         const resumeId = searchParams.get("id");
 
@@ -193,7 +199,17 @@ export async function DELETE(req) {
         }
 
         await connectDB();
-        await resumeModel.findByIdAndDelete(resumeId);
+        const resume = await resumeModel.findById(resumeId);
+
+        if (!resume) {
+            return NextResponse.json({ message: "Resume not found" }, { status: 404 });
+        }
+
+        if (resume.userEmail !== session.user.email) {
+            return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+        }
+
+        await resume.deleteOne();
 
         return NextResponse.json({ success: true, message: "Resume deleted successfully" }, { status: 200 });
     } catch (error) {
@@ -211,12 +227,7 @@ export async function GET() {
 
         await connectDB();
 
-        let query = {};
-        if (session.user.role !== "admin") {
-            query = { userEmail: session.user.email };
-        }
-
-        const resumes = await resumeModel.find(query);
+        const resumes = await resumeModel.find({ userEmail: session.user.email });
 
         if (!resumes) {
             return NextResponse.json({ error: "no resume found" }, { status: 400 });

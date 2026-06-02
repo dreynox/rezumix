@@ -43,14 +43,13 @@ export default function BuilderPage() {
   }, []);
 
   const handleSave = async () => {
-    const userEmail = session?.user?.email;
-    if (!userEmail) return;
+    if (!session?.user?.email) return;
     setSaving(true);
     try {
       const res = await fetch("/api/resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userEmail, ...resumeData }),
+        body: JSON.stringify(resumeData),
       });
       const data = await res.json();
       setSaveMsg(data.success ? "✅ Saved!" : "❌ Error");

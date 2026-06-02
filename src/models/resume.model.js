@@ -8,6 +8,11 @@ const resumeSchema = new mongoose.Schema(
       default: "",
     },
 
+    resumeText: {
+      type: String,
+      default: "",
+    },
+
     userEmail: {
       type: String,
       required: true,

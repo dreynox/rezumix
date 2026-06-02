@@ -49,10 +49,10 @@ class ApiClient {
         }
     }
 
-    async analyzeResume(userEmail, formData, isFormData = false) {
+    async analyzeResume(formData, isFormData = false) {
         try {
             const headers = isFormData ? { "Content-Type": "multipart/form-data" } : { 'Content-Type': 'application/json' };
-            const response = await this.api.post(`/analyze-resume?email=${encodeURIComponent(userEmail)}`, formData, { headers })
+            const response = await this.api.post(`/analyze-resume`, formData, { headers })
             return response.data;
         } catch (error) {
             this.handleError(error)
