@@ -271,7 +271,9 @@ export async function GET() {
 
         await connectDB();
 
-        const resumes = await resumeModel.find({ userEmail: session.user.email });
+        const resumes = session.user.role === "admin"
+            ? await resumeModel.find({})
+            : await resumeModel.find({ userEmail: session.user.email });
 
         if (!resumes) {
             return NextResponse.json({ error: "no resume found" }, { status: 400 });

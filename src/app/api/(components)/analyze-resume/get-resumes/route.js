@@ -1,15 +1,13 @@
 import { connectDB } from "@/db/connectDB"
 import resumeModel from "@/models/resume.model";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireSession } from "@/lib/auth-guard";
 
 export async function GET(req) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user?.email) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-        }
+        const auth = await requireSession();
+        if (auth.error) return auth.error;
+        const { session } = auth;
 
         await connectDB();
 

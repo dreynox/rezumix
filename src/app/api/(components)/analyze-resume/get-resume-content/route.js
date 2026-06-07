@@ -3,8 +3,7 @@ import resumeModel from "@/models/resume.model";
 import axios from "axios";
 import mammoth from "mammoth";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireSession, requireOwnership } from "@/lib/auth-guard";
 
 function isTrustedResumeUrl(value) {
     if (typeof value !== "string" || value.trim().length === 0) {
@@ -13,7 +12,7 @@ function isTrustedResumeUrl(value) {
 
     try {
         const parsed = new URL(value);
-        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        if (parsed.protocol !== "https:") {
             return false;
         }
 
@@ -38,10 +37,9 @@ function textToHtml(value) {
 
 export async function GET(req) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user?.email) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-        }
+        const auth = await requireSession();
+        if (auth.error) return auth.error;
+        const { session } = auth;
 
         await connectDB();
 
@@ -54,9 +52,8 @@ export async function GET(req) {
             return NextResponse.json({ message: "Resume not found" }, { status: 404 });
         }
 
-        if (resumeRecord.userEmail !== session.user.email) {
-            return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-        }
+        const ownershipCheck = requireOwnership(session, resumeRecord.userEmail);
+        if (ownershipCheck.error) return ownershipCheck.error;
 
         if (typeof resumeRecord.resumeText === "string" && resumeRecord.resumeText.trim().length > 0) {
             return NextResponse.json({
